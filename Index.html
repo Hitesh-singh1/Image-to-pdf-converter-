@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ImgPDF</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  font-family:'Segoe UI',sans-serif;
+  background:#020617;
+  color:#e2e8f0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+  padding:15px;
+}
+
+/* container */
+.container{
+  width:100%;
+  max-width:600px;
+  padding:25px;
+  background:#0f172a;
+  border-radius:18px;
+  border:1px solid #1e293b;
+  text-align:center;
+  box-shadow:0 0 40px rgba(59,130,246,0.15);
+}
+
+/* mobile fix */
+@media(max-width:500px){
+  body{
+    align-items:flex-start;
+    padding-top:40px;
+  }
+
+  .container{
+    width:100%;
+    border-radius:14px;
+    padding:20px;
+  }
+}
+
+/* title */
+h1{
+  font-size:22px;
+}
+
+.sub{
+  font-size:12px;
+  color:#64748b;
+  margin:10px 0 20px;
+}
+
+/* dropzone */
+.drop{
+  border:2px dashed #334155;
+  border-radius:14px;
+  padding:25px;
+  cursor:pointer;
+  transition:0.3s;
+  font-size:14px;
+}
+
+.drop:hover{
+  border-color:#3b82f6;
+}
+
+/* buttons */
+.controls{
+  margin-top:15px;
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+button{
+  background:#1e293b;
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  color:#e2e8f0;
+  cursor:pointer;
+  font-size:13px;
+  min-width:45px;
+}
+
+button.active{
+  background:#3b82f6;
+}
+
+/* convert */
+.convert{
+  margin-top:20px;
+  width:100%;
+  padding:12px;
+  background:linear-gradient(135deg,#3b82f6,#06b6d4);
+  font-size:15px;
+}
+
+/* preview */
+.grid{
+  display:grid;
+  gap:8px;
+  margin-top:15px;
+}
+
+.cols-1{grid-template-columns:1fr}
+.cols-2{grid-template-columns:repeat(2,1fr)}
+.cols-4{grid-template-columns:repeat(2,1fr)} /* mobile fix */
+
+@media(min-width:600px){
+  .cols-4{grid-template-columns:repeat(4,1fr)}
+}
+
+img{
+  width:100%;
+  height:90px;
+  object-fit:cover;
+  border-radius:8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Image → PDF Converter</h1>
+<div class="sub">Drag • Drop • Convert • Private</div>
+
+<label class="drop">
+  📂 Click or Drag Images Here
+  <input type="file" id="fi" multiple accept="image/*" hidden>
+</label>
+
+<div class="controls">
+  <button class="layout active" data-cols="1">1</button>
+  <button class="layout" data-cols="2">2</button>
+  <button class="layout" data-cols="4">4</button>
+  <button id="fitBtn">Fit: ON</button>
+</div>
+
+<div id="grid" class="grid cols-1"></div>
+
+<button class="convert" id="convert">⚡ Convert PDF</button>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+const fi=document.getElementById('fi');
+const grid=document.getElementById('grid');
+const fitBtn=document.getElementById('fitBtn');
+const convert=document.getElementById('convert');
+
+let images=[];
+let layout=1;
+let fit=true;
+
+/* layout */
+document.querySelectorAll('.layout').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.layout').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    layout=parseInt(btn.dataset.cols);
+    grid.className="grid cols-"+layout;
+  }
+});
+
+/* fit */
+fitBtn.onclick=()=>{
+  fit=!fit;
+  fitBtn.textContent="Fit: "+(fit?"ON":"OFF");
+};
+
+/* upload */
+fi.onchange=()=>handleFiles(fi.files);
+
+/* drag */
+document.querySelector('.drop').addEventListener("dragover",e=>e.preventDefault());
+document.querySelector('.drop').addEventListener("drop",e=>{
+  e.preventDefault();
+  handleFiles(e.dataTransfer.files);
+});
+
+/* handle */
+function handleFiles(files){
+  [...files].forEach(file=>{
+    if(!file.type.startsWith("image/")) return;
+    const r=new FileReader();
+    r.onload=e=>{
+      images.push({src:e.target.result});
+      render();
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+/* render */
+function render(){
+  grid.innerHTML="";
+  images.forEach(img=>{
+    const el=document.createElement("img");
+    el.src=img.src;
+    grid.appendChild(el);
+  });
+}
+
+/* dims */
+function getDims(src){
+  return new Promise(res=>{
+    let i=new Image();
+    i.onload=()=>res({w:i.width,h:i.height});
+    i.src=src;
+  });
+}
+
+/* convert */
+convert.onclick=async()=>{
+
+  if(images.length===0){
+    alert("Add images first");
+    return;
+  }
+
+  const {jsPDF}=window.jspdf;
+  let pdf=new jsPDF();
+
+  for(let i=0;i<images.length;i+=layout){
+
+    let group=images.slice(i,i+layout);
+
+    if(i!==0) pdf.addPage();
+
+    let pw=pdf.internal.pageSize.getWidth();
+    let ph=pdf.internal.pageSize.getHeight();
+
+    let pos=[];
+
+    if(layout===1){
+      pos=[{x:10,y:10,w:pw-20,h:ph-20}];
+    }
+    else if(layout===2){
+      pos=[
+        {x:10,y:10,w:pw-20,h:(ph-30)/2},
+        {x:10,y:(ph/2)+5,w:pw-20,h:(ph-30)/2}
+      ];
+    }
+    else if(layout===4){
+      pos=[
+        {x:10,y:10,w:(pw-30)/2,h:(ph-30)/2},
+        {x:(pw/2)+5,y:10,w:(pw-30)/2,h:(ph-30)/2},
+        {x:10,y:(ph/2)+5,w:(pw-30)/2,h:(ph-30)/2},
+        {x:(pw/2)+5,y:(ph/2)+5,w:(pw-30)/2,h:(ph-30)/2}
+      ];
+    }
+
+    for(let j=0;j<group.length;j++){
+      let img=group[j];
+      let p=pos[j];
+
+      if(fit){
+        let d=await getDims(img.src);
+        let r=Math.min(p.w/d.w,p.h/d.h);
+        let w=d.w*r;
+        let h=d.h*r;
+        let x=p.x+(p.w-w)/2;
+        let y=p.y+(p.h-h)/2;
+        pdf.addImage(img.src,'JPEG',x,y,w,h);
+      } else {
+        pdf.addImage(img.src,'JPEG',p.x,p.y,p.w,p.h);
+      }
+    }
+  }
+
+  pdf.save("output.pdf");
+};
+</script>
+
+</body>
+</html>
