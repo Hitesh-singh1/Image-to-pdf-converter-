@@ -4,14 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ImgPDF</title>
-
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-}
-
+*{ margin:0; padding:0; box-sizing:border-box; }
 body{
   font-family:'Segoe UI',sans-serif;
   background:#020617;
@@ -22,8 +16,6 @@ body{
   min-height:100vh;
   padding:15px;
 }
-
-/* container */
 .container{
   width:100%;
   max-width:600px;
@@ -34,33 +26,12 @@ body{
   text-align:center;
   box-shadow:0 0 40px rgba(59,130,246,0.15);
 }
-
-/* mobile fix */
 @media(max-width:500px){
-  body{
-    align-items:flex-start;
-    padding-top:40px;
-  }
-
-  .container{
-    width:100%;
-    border-radius:14px;
-    padding:20px;
-  }
+  body{ align-items:flex-start; padding-top:40px; }
+  .container{ border-radius:14px; padding:20px; }
 }
-
-/* title */
-h1{
-  font-size:22px;
-}
-
-.sub{
-  font-size:12px;
-  color:#64748b;
-  margin:10px 0 20px;
-}
-
-/* dropzone */
+h1{ font-size:22px; }
+.sub{ font-size:12px; color:#64748b; margin:10px 0 20px; }
 .drop{
   border:2px dashed #334155;
   border-radius:14px;
@@ -68,13 +39,9 @@ h1{
   cursor:pointer;
   transition:0.3s;
   font-size:14px;
+  display:block;
 }
-
-.drop:hover{
-  border-color:#3b82f6;
-}
-
-/* buttons */
+.drop:hover{ border-color:#3b82f6; }
 .controls{
   margin-top:15px;
   display:flex;
@@ -82,7 +49,6 @@ h1{
   gap:8px;
   flex-wrap:wrap;
 }
-
 button{
   background:#1e293b;
   border:none;
@@ -92,201 +58,424 @@ button{
   cursor:pointer;
   font-size:13px;
   min-width:45px;
+  transition:background 0.2s;
 }
-
-button.active{
-  background:#3b82f6;
+button.active{ background:#3b82f6; }
+#orientBtn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
 }
-
-/* convert */
+.page-icon{
+  position:relative;
+  width:13px;
+  height:17px;
+  border:2px solid currentColor;
+  border-radius:2px;
+  flex-shrink:0;
+  transition:width 0.25s,height 0.25s;
+}
+.page-icon::after{
+  content:'';
+  position:absolute;
+  top:-1px; right:-1px;
+  width:4px; height:4px;
+  border-left:2px solid currentColor;
+  border-bottom:2px solid currentColor;
+  background:#1e293b;
+}
+#orientBtn.landscape .page-icon{ width:17px; height:13px; }
+#orientBtn.landscape .page-icon::after{
+  top:auto; right:auto;
+  bottom:-1px; left:-1px;
+  border-left:none; border-bottom:none;
+  border-right:2px solid currentColor;
+  border-top:2px solid currentColor;
+}
 .convert{
   margin-top:20px;
   width:100%;
   padding:12px;
   background:linear-gradient(135deg,#3b82f6,#06b6d4);
   font-size:15px;
+  border-radius:10px;
 }
-
-/* preview */
-.grid{
-  display:grid;
-  gap:8px;
-  margin-top:15px;
-}
-
-.cols-1{grid-template-columns:1fr}
-.cols-2{grid-template-columns:repeat(2,1fr)}
-.cols-4{grid-template-columns:repeat(2,1fr)} /* mobile fix */
-
+.grid{ display:grid; gap:8px; margin-top:15px; }
+.cols-1{ grid-template-columns:1fr }
+.cols-2{ grid-template-columns:repeat(2,1fr) }
+.cols-4{ grid-template-columns:repeat(2,1fr) }
 @media(min-width:600px){
-  .cols-4{grid-template-columns:repeat(4,1fr)}
+  .cols-4{ grid-template-columns:repeat(4,1fr) }
 }
-
-img{
+.img-wrap{
+  position:relative;
+  display:inline-block;
   width:100%;
-  height:90px;
-  object-fit:cover;
+}
+.img-wrap img{ width:100%; height:90px; object-fit:cover; border-radius:8px; display:block; }
+.img-wrap .del{
+  position:absolute;
+  top:4px; right:4px;
+  width:20px; height:20px;
+  background:rgba(220,38,38,0.85);
+  border:none;
+  border-radius:50%;
+  color:#fff;
+  font-size:13px;
+  line-height:20px;
+  text-align:center;
+  cursor:pointer;
+  padding:0;
+  min-width:unset;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  transition:opacity 0.2s;
+}
+.img-wrap:hover .del{ opacity:1; }
+
+/* Auto-rotate badge */
+.img-wrap .rotate-badge{
+  position:absolute;
+  bottom:4px; left:4px;
+  background:rgba(6,182,212,0.85);
+  color:#fff;
+  font-size:10px;
+  padding:2px 5px;
+  border-radius:5px;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity 0.2s;
+}
+.img-wrap:hover .rotate-badge{ opacity:1; }
+
+/* Progress bar */
+#progressWrap{
+  margin-top:12px;
+  display:none;
+  background:#1e293b;
   border-radius:8px;
+  height:8px;
+  overflow:hidden;
+}
+#progressBar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#3b82f6,#06b6d4);
+  border-radius:8px;
+  transition:width 0.2s;
 }
 </style>
 </head>
-
 <body>
-
 <div class="container">
-
-<h1>Image → PDF Converter</h1>
-<div class="sub">Drag • Drop • Convert • Private</div>
-
-<label class="drop">
-  📂 Click or Drag Images Here
-  <input type="file" id="fi" multiple accept="image/*" hidden>
-</label>
-
-<div class="controls">
-  <button class="layout active" data-cols="1">1</button>
-  <button class="layout" data-cols="2">2</button>
-  <button class="layout" data-cols="4">4</button>
-  <button id="fitBtn">Fit: ON</button>
-</div>
-
-<div id="grid" class="grid cols-1"></div>
-
-<button class="convert" id="convert">⚡ Convert PDF</button>
-
+  <h1>Image → PDF Converter</h1>
+  <div class="sub">Drag • Drop • Convert • Private</div>
+  <label class="drop">
+    📂 Click or Drag Images Here
+    <input type="file" id="fi" multiple accept="image/*" hidden>
+  </label>
+  <div class="controls">
+    <button class="layout active" data-cols="1">1</button>
+    <button class="layout" data-cols="2">2</button>
+    <button class="layout" data-cols="4">4</button>
+    <button id="fitBtn" class="active" title="Fit image inside slot preserving aspect ratio">Fit: ON</button>
+    <button id="autoRotateBtn" class="active" title="Auto-rotate image to best match slot orientation">⟳ Auto-Rotate: ON</button>
+    <button id="orientBtn" title="Toggle page orientation">
+      <span class="page-icon"></span>
+      <span id="orientLabel">Portrait</span>
+    </button>
+  </div>
+  <div id="grid" class="grid cols-1"></div>
+  <div id="progressWrap"><div id="progressBar"></div></div>
+  <button class="convert" id="convert">⚡ Convert PDF</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <script>
-const fi=document.getElementById('fi');
-const grid=document.getElementById('grid');
-const fitBtn=document.getElementById('fitBtn');
-const convert=document.getElementById('convert');
+const fi             = document.getElementById('fi');
+const gridEl         = document.getElementById('grid');
+const fitBtn         = document.getElementById('fitBtn');
+const autoRotateBtn  = document.getElementById('autoRotateBtn');
+const convertBtn     = document.getElementById('convert');
+const orientBtn      = document.getElementById('orientBtn');
+const orientLabel    = document.getElementById('orientLabel');
+const progressWrap   = document.getElementById('progressWrap');
+const progressBar    = document.getElementById('progressBar');
 
-let images=[];
-let layout=1;
-let fit=true;
+let images      = [];
+let layout      = 1;
+let fit         = true;
+let autoRotate  = true;
+let isLandscape = false;
 
-/* layout */
-document.querySelectorAll('.layout').forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll('.layout').forEach(b=>b.classList.remove('active'));
+/* ── Layout buttons ── */
+document.querySelectorAll('.layout').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.layout').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    layout=parseInt(btn.dataset.cols);
-    grid.className="grid cols-"+layout;
-  }
+    layout = parseInt(btn.dataset.cols);
+    gridEl.className = 'grid cols-' + layout;
+  };
 });
 
-/* fit */
-fitBtn.onclick=()=>{
-  fit=!fit;
-  fitBtn.textContent="Fit: "+(fit?"ON":"OFF");
+/* ── Fit toggle ── */
+fitBtn.onclick = () => {
+  fit = !fit;
+  fitBtn.textContent = 'Fit: ' + (fit ? 'ON' : 'OFF');
+  fitBtn.classList.toggle('active', fit);
 };
 
-/* upload */
-fi.onchange=()=>handleFiles(fi.files);
+/* ── Auto-Rotate toggle ── */
+autoRotateBtn.onclick = () => {
+  autoRotate = !autoRotate;
+  autoRotateBtn.textContent = '⟳ Auto-Rotate: ' + (autoRotate ? 'ON' : 'OFF');
+  autoRotateBtn.classList.toggle('active', autoRotate);
+  render(); // re-render badges
+};
 
-/* drag */
-document.querySelector('.drop').addEventListener("dragover",e=>e.preventDefault());
-document.querySelector('.drop').addEventListener("drop",e=>{
+/* ── Page orientation toggle ── */
+orientBtn.onclick = () => {
+  isLandscape = !isLandscape;
+  if(isLandscape){
+    orientBtn.classList.add('landscape');
+    orientBtn.style.background = '#3b82f6';
+    orientLabel.textContent = 'Landscape';
+  } else {
+    orientBtn.classList.remove('landscape');
+    orientBtn.style.background = '';
+    orientLabel.textContent = 'Portrait';
+  }
+};
+
+/* ── File input ── */
+fi.onchange = () => handleFiles(fi.files);
+document.querySelector('.drop').addEventListener('dragover', e => e.preventDefault());
+document.querySelector('.drop').addEventListener('drop', e => {
   e.preventDefault();
   handleFiles(e.dataTransfer.files);
 });
 
-/* handle */
 function handleFiles(files){
-  [...files].forEach(file=>{
-    if(!file.type.startsWith("image/")) return;
-    const r=new FileReader();
-    r.onload=e=>{
-      images.push({src:e.target.result});
-      render();
+  [...files].forEach(file => {
+    if(!file.type.startsWith('image/')) return;
+    const r = new FileReader();
+    r.onload = e => {
+      getDims(e.target.result).then(d => {
+        images.push({ src: e.target.result, w: d.w, h: d.h });
+        render();
+      });
     };
     r.readAsDataURL(file);
   });
 }
 
-/* render */
+/* ── Render preview grid ── */
 function render(){
-  grid.innerHTML="";
-  images.forEach(img=>{
-    const el=document.createElement("img");
-    el.src=img.src;
-    grid.appendChild(el);
-  });
-}
+  gridEl.innerHTML = '';
+  images.forEach((img, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'img-wrap';
 
-/* dims */
-function getDims(src){
-  return new Promise(res=>{
-    let i=new Image();
-    i.onload=()=>res({w:i.width,h:i.height});
-    i.src=src;
-  });
-}
+    const el = document.createElement('img');
+    el.src = img.src;
 
-/* convert */
-convert.onclick=async()=>{
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.innerHTML = '&#x2715;';
+    del.title = 'Remove image';
+    del.onclick = e => {
+      e.preventDefault();
+      images.splice(idx, 1);
+      render();
+    };
 
-  if(images.length===0){
-    alert("Add images first");
-    return;
-  }
+    wrap.appendChild(el);
+    wrap.appendChild(del);
 
-  const {jsPDF}=window.jspdf;
-  let pdf=new jsPDF();
-
-  for(let i=0;i<images.length;i+=layout){
-
-    let group=images.slice(i,i+layout);
-
-    if(i!==0) pdf.addPage();
-
-    let pw=pdf.internal.pageSize.getWidth();
-    let ph=pdf.internal.pageSize.getHeight();
-
-    let pos=[];
-
-    if(layout===1){
-      pos=[{x:10,y:10,w:pw-20,h:ph-20}];
-    }
-    else if(layout===2){
-      pos=[
-        {x:10,y:10,w:pw-20,h:(ph-30)/2},
-        {x:10,y:(ph/2)+5,w:pw-20,h:(ph-30)/2}
-      ];
-    }
-    else if(layout===4){
-      pos=[
-        {x:10,y:10,w:(pw-30)/2,h:(ph-30)/2},
-        {x:(pw/2)+5,y:10,w:(pw-30)/2,h:(ph-30)/2},
-        {x:10,y:(ph/2)+5,w:(pw-30)/2,h:(ph-30)/2},
-        {x:(pw/2)+5,y:(ph/2)+5,w:(pw-30)/2,h:(ph-30)/2}
-      ];
-    }
-
-    for(let j=0;j<group.length;j++){
-      let img=group[j];
-      let p=pos[j];
-
-      if(fit){
-        let d=await getDims(img.src);
-        let r=Math.min(p.w/d.w,p.h/d.h);
-        let w=d.w*r;
-        let h=d.h*r;
-        let x=p.x+(p.w-w)/2;
-        let y=p.y+(p.h-h)/2;
-        pdf.addImage(img.src,'JPEG',x,y,w,h);
-      } else {
-        pdf.addImage(img.src,'JPEG',p.x,p.y,p.w,p.h);
+    // Show rotate badge only when auto-rotate is on and image would be rotated
+    if(autoRotate){
+      const slotIsLandscape = getSlotOrientation(idx);
+      const imgIsLandscape  = img.w > img.h;
+      if(slotIsLandscape !== imgIsLandscape){
+        const badge = document.createElement('span');
+        badge.className = 'rotate-badge';
+        badge.textContent = '⟳ rotated';
+        wrap.appendChild(badge);
       }
     }
+
+    gridEl.appendChild(wrap);
+  });
+}
+
+/* ── Helper: is the slot for image at index landscape? ── */
+function getSlotOrientation(imgIdx){
+  // Use A4 proportions to determine slot shape
+  const pw = isLandscape ? 297 : 210;
+  const ph = isLandscape ? 210 : 297;
+  const slots = getSlots(pw, ph);
+  const slotIdx = imgIdx % layout;
+  const slot = slots[Math.min(slotIdx, slots.length - 1)];
+  return slot.w > slot.h;
+}
+
+/* ── Get image dimensions ── */
+function getDims(src){
+  return new Promise(res => {
+    const i = new Image();
+    i.onload = () => res({w: i.width, h: i.height});
+    i.src = src;
+  });
+}
+
+/*
+  ┌──────────────────────────────────────────────────┐
+  │  Slot layout logic                               │
+  │  layout=1  → full page                          │
+  │  layout=2 portrait  → top / bottom stacked      │
+  │  layout=2 landscape → left / right side-by-side │
+  │  layout=4  → 2×2 grid                           │
+  └──────────────────────────────────────────────────┘
+*/
+function getSlots(pw, ph){
+  const M = 8;
+  const G = 6;
+
+  if(layout === 1){
+    return [{ x:M, y:M, w:pw-2*M, h:ph-2*M }];
   }
 
-  pdf.save("output.pdf");
+  if(layout === 2){
+    if(isLandscape){
+      const slotW = (pw - 2*M - G) / 2;
+      return [
+        { x:M,          y:M, w:slotW, h:ph-2*M },
+        { x:M+slotW+G,  y:M, w:slotW, h:ph-2*M }
+      ];
+    } else {
+      const slotH = (ph - 2*M - G) / 2;
+      return [
+        { x:M, y:M,          w:pw-2*M, h:slotH },
+        { x:M, y:M+slotH+G,  w:pw-2*M, h:slotH }
+      ];
+    }
+  }
+
+  if(layout === 4){
+    const slotW = (pw - 2*M - G) / 2;
+    const slotH = (ph - 2*M - G) / 2;
+    return [
+      { x:M,         y:M,         w:slotW, h:slotH },
+      { x:M+slotW+G, y:M,         w:slotW, h:slotH },
+      { x:M,         y:M+slotH+G, w:slotW, h:slotH },
+      { x:M+slotW+G, y:M+slotH+G, w:slotW, h:slotH }
+    ];
+  }
+  return [];
+}
+
+/*
+  ── Auto-Rotate + Fit core logic ──────────────────────────────────
+  When auto-rotate is ON: if an image's orientation (portrait/landscape)
+  doesn't match its slot, we rotate the image 90° on a canvas so it
+  fills the slot much better before embedding into the PDF.
+
+  When fit is ON: the image (possibly rotated) is scaled to fill the
+  slot while preserving its aspect ratio, then centred in the slot.
+
+  When fit is OFF: the image is stretched to fill the slot entirely.
+*/
+async function prepareImageForSlot(imgSrc, imgW, imgH, slot){
+  const slotIsLandscape = slot.w > slot.h;
+  const imgIsLandscape  = imgW > imgH;
+  const needsRotation   = autoRotate && (slotIsLandscape !== imgIsLandscape);
+
+  return new Promise(res => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      let drawW, drawH;
+
+      if(needsRotation){
+        // Rotate 90°: swap dimensions
+        canvas.width  = imgH;
+        canvas.height = imgW;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(image, -imgW / 2, -imgH / 2, imgW, imgH);
+        drawW = imgH;
+        drawH = imgW;
+      } else {
+        canvas.width  = imgW;
+        canvas.height = imgH;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0, imgW, imgH);
+        drawW = imgW;
+        drawH = imgH;
+      }
+
+      res({ dataUrl: canvas.toDataURL('image/jpeg', 0.92), w: drawW, h: drawH });
+    };
+    image.src = imgSrc;
+  });
+}
+
+/* ── Convert button ── */
+convertBtn.onclick = async () => {
+  if(images.length === 0){ alert('Add images first'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const orient = isLandscape ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({ orientation: orient, unit: 'mm', format: 'a4' });
+
+  const total = images.length;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+  convertBtn.disabled = true;
+  convertBtn.textContent = 'Processing…';
+
+  for(let i = 0; i < images.length; i += layout){
+    const group = images.slice(i, i + layout);
+    if(i !== 0) pdf.addPage('a4', orient);
+
+    const pw    = pdf.internal.pageSize.getWidth();
+    const ph    = pdf.internal.pageSize.getHeight();
+    const slots = getSlots(pw, ph);
+
+    for(let j = 0; j < group.length; j++){
+      const img  = group[j];
+      const slot = slots[j];
+
+      // Prepare image (rotate if needed)
+      const prepared = await prepareImageForSlot(img.src, img.w, img.h, slot);
+
+      if(fit){
+        // Scale to fit slot preserving aspect ratio, then centre
+        const ratio = Math.min(slot.w / prepared.w, slot.h / prepared.h);
+        const w     = prepared.w * ratio;
+        const h     = prepared.h * ratio;
+        const x     = slot.x + (slot.w - w) / 2;
+        const y     = slot.y + (slot.h - h) / 2;
+        pdf.addImage(prepared.dataUrl, 'JPEG', x, y, w, h);
+      } else {
+        // Stretch to fill the slot entirely
+        pdf.addImage(prepared.dataUrl, 'JPEG', slot.x, slot.y, slot.w, slot.h);
+      }
+
+      // Update progress
+      const done = i + j + 1;
+      progressBar.style.width = Math.round((done / total) * 100) + '%';
+    }
+  }
+
+  pdf.save('output.pdf');
+  progressWrap.style.display = 'none';
+  convertBtn.disabled = false;
+  convertBtn.textContent = '⚡ Convert PDF';
 };
 </script>
-
 </body>
 </html>
